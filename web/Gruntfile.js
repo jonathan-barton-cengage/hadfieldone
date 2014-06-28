@@ -351,6 +351,12 @@ module.exports = function(grunt) {
       server: {
         autoWatch: true
       }
+    },
+
+    execute: {
+        target: {
+            src: ['service/app.js']
+        }
     }
   });
 
@@ -406,4 +412,5 @@ module.exports = function(grunt) {
     'build'
   ]);
 
+  grunt.loadNpmTasks('grunt-execute');
 };
