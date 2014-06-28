@@ -6,5 +6,11 @@ angular.module('jonathan-barton-cengage.Hadfieldone')
 
     $scope.$path = $location.path.bind($location);
     $scope.version = version;
+    $scope.projectTitle = "Project Hadfield";
+    $scope.mainMenuItems = [
+        {
+            
+        }
+    ]
 
   });
