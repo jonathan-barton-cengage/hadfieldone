@@ -1,0 +1,32 @@
+{
+  "name": "hadfieldone",
+  "version": "0.1.0",
+  "description": "Yet another amazing AngularJS app",
+  "keywords": [
+    "angular"
+  ],
+  "homepage": "https://github.com/jonathan-barton-cengage/hadfieldone",
+  "bugs": "https://github.com/jonathan-barton-cengage/hadfieldone/issues",
+  "author": {
+    "name": "Jonathan Barton",
+    "email": "jonathan.barton@cengage.com",
+    "url": "https://github.com/jonathan-barton-cengage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonathan-barton-cengage/hadfieldone.git"
+  },
+  "licenses": [
+    {
+      "type": "MIT"
+    }
+  ],
+  "dependencies": {
+    "bootstrap": "3.2.0",
+    "ui-router": "0.2.10",
+    "angular-animate": "^1.3.0-beta.13",
+    "angular-resource": "^1.3.0-beta.13",
+    "angular-route": "^1.3.0-beta.13",
+    "angular": "^1.3.0-beta.13"
+  }
+}
