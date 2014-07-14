@@ -7,7 +7,7 @@
 #include <Adafruit_BMP085_U.h>  //bmp180 (formerly 085)
 #include <util/crc16.h>
 #include <SoftwareSerial.h>
-//defines
+//pin defines
 #define LOGPIN 10 //10 is sd logger chipset for adafruit sd logger shield
 #define RADIOPIN 9
 #define GPS_ARDUINO_RX 4
@@ -25,8 +25,8 @@ const char dataHeader[] = "[DATA]";
 const char errorHeader[] = "[ERROR]";
 const uint32_t GPSBaud = 4800;
 const uint32_t serialBaud = 115200;
-//debug
-const int debug = 1;
+const uint32_t RADIO_LOW = 100; //105
+const uint32_t RADIO_HIGH = 10; //120
 //sensors
 Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085); 
 RTC_DS1307 RTC;
@@ -37,6 +37,8 @@ SoftwareSerial ss(GPS_ARDUINO_RX, GPS_ARDUINO_TX);
 //logging related
 uint16_t sentence_id = 1;
 char txstring[100];
+//debug
+const int debug = 1;
 
 uint16_t calculateNmeaXor(String theseChars) {
   int check = 0;
@@ -67,12 +69,11 @@ uint16_t gps_CRC16_checksum (char *string)
 // $$CALLSIGN,sentence_id,time,latitude,longitude,altitude,optional speed,optional bearing,optional internal temperature,*CHECKSUM\n 
 void setSensorMessage(char * message){
   DateTime now = RTC.now(); 
-  char *timestamp;
-  char *temp_buffer, *pre_buffer, *alt_buffer;
+  char *temp_buffer="", *pre_buffer="", *alt_buffer="", *timestamp="";
   float temperature, pressure, altitude; 
-  char *lat, *lon, *gps_altitude;
+  char *lat="", *lon="", *gps_altitude="";
   uint16_t batteryadc_v, crc;
-  //lat read
+ //lat read
   dtostrf(gps.location.lat(),11, 6, lat);
   //lon read
   dtostrf(gps.location.lng(),12, 6, lon);
@@ -82,7 +83,7 @@ void setSensorMessage(char * message){
   bmp.getTemperature(&temperature); 
   dtostrf(temperature, 2, 2, temp_buffer); 
   //pressure read
-  bmp.getPressure(&pressure); 
+  bmp.getPressure(&pressure);
   dtostrf(pressure, 8, 2, pre_buffer);
   //altitude calculate
   altitude = bmp.seaLevelForAltitude(seaLevelPressure, pressure, temperature);
@@ -90,14 +91,19 @@ void setSensorMessage(char * message){
   //read battery voltage
   batteryadc_v=analogRead(BATTERY_ADC)*4.8; 
   //create timestamp
-  snprintf(timestamp, 8, "%02d:%02d:%02d", now.hour(), now.minute(), now.second());
+  TinyGPSTime &t = gps.time; 
+  snprintf(timestamp, 9, "%02d:%02d:%02d", now.hour(), now.minute(), now.second());
+  safeSerialPrintLn(timestamp);
+
   //create stub
-  snprintf(txstring,100,"%s,%i,%s,%s,%s,%s,%s,%s,%i",callSign,sentence_id,timestamp,lat,lon,alt_buffer,temp_buffer,pre_buffer,batteryadc_v);
+  //snprintf(txstring,100,"%s,%i,%s,%s,%s,%s,%s,%s,%i",callSign,sentence_id,timestamp,lat,lon,alt_buffer,temp_buffer,pre_buffer,batteryadc_v);
+  
   //calc crc
   crc = calculateNmeaXor(txstring); //gps_CRC16_checksum(txstring);
   //finalize
-  snprintf(txstring,100, "$$%s*%i",txstring,crc);
-  message = txstring;
+  //snprintf(txstring,100, "$$%s*%i",txstring,crc);
+  //message = txstring;
+  
 }
 
 void rtty_txstring (char * string)
@@ -127,11 +133,11 @@ void rtty_txbyte (char c) {
 void rtty_txbit (int bit) {
  if (bit) {
    // high
-   analogWrite(RADIOPIN,110);
+   analogWrite(RADIOPIN,RADIO_HIGH);
  }
  else {
    // low
-   analogWrite(RADIOPIN,100);
+   analogWrite(RADIOPIN,RADIO_LOW);
 }
  
 // delayMicroseconds(3370); // 300 baud
@@ -215,7 +221,9 @@ void incrementSentenceId(){
 void initSentenceId(){
   File sentenceIdFile = SD.open(sentenceIdFileName, FILE_READ);
   String lastSentenceId;
-  while(sentenceIdFile.available()){
+  if(sentenceIdFile.available()){
+    safeSerialPrintLn("3. Reading sentence_id file...");
+    sentence_id = 1;
      //lastSentenceId = sentenceIdFile.read();
   }
   sentenceIdFile.close();
@@ -229,33 +237,51 @@ void safeSerialPrintLn(char * message){
 }
 
 void setup(void){
-  if(debug == 1){ Serial.begin(serialBaud); }
+    //debug setup
+    if(debug == 1){ 
+      Serial.begin(serialBaud); 
+    }
+    //sensor setup
     Wire.begin();
+    if(!bmp.begin()){
+      safeSerialPrintLn("0. Sensor is not functioning. ");       
+    }
+    //rtc setup
     RTC.begin();
-    bmp.begin();
-    if (! RTC.isrunning()) { safeSerialPrintLn(""); }
-    pinMode(LOGPIN, OUTPUT);
+    if (! RTC.isrunning()) { 
+      safeSerialPrintLn("0. Realtime Clock is not Functioning. ");
+      RTC.adjust(DateTime(__DATE__, __TIME__)); 
+    }
+
+    //gps setup    
+    ss.begin(GPSBaud);
+    
+    //radio setup
     pinMode(RADIOPIN, OUTPUT);
     setPwmFrequency(RADIOPIN, 1);
+    //log setup
+    pinMode(LOGPIN, OUTPUT);
     if(SD.begin(LOGPIN)){
-      safeSerialPrintLn("SD card initialized");
+      safeSerialPrintLn("1. SD card initialized.");
     }else{
       safeSerialPrintLn("Failed to load SD card");
       return;
     }
+    safeSerialPrintLn("2. Loading last sentence_id...");
     initSentenceId();
 }
 
 void loop(void){
- File hadfieldDataLog = SD.open(logFileName, FILE_WRITE);
- if(hadfieldDataLog){ 
+   safeSerialPrintLn("4. Opening data log...");
+   File hadfieldDataLog = SD.open(logFileName, FILE_WRITE); 
    char * message;
    setSensorMessage(message);
-   hadfieldDataLog.println(message);
+   if(hadfieldDataLog){
+     hadfieldDataLog.println(message);
+     hadfieldDataLog.close();
+   }
    rtty_txstring (message);
    safeSerialPrintLn(message);
    incrementSentenceId();
-   hadfieldDataLog.close();
- }
- delay(10000);
+ delay(2000);
 }
