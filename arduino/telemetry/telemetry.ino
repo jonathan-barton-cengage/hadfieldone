@@ -86,7 +86,6 @@ char * getSensorMessage(){
   } else {
     sentence_id = (sentence_id > 0) ? sentence_id+1:sentence_id; 
   }
-        
   bmp.getTemperature(&temperature); 
   dtostrf(temperature, 4, 2, temp_buffer);
   bmp.getPressure(&pressure); //in hPa
@@ -95,11 +94,7 @@ char * getSensorMessage(){
   sprintf(txstring,"$$%s,%i,%s,%s,%s,%s,%s", callSign, sentence_id, timestamp, lat, lon, pre_buffer, temp_buffer);
   crc = gps_CRC16_checksum(txstring);
   sprintf(txstring,"%s*%04X",txstring,crc);
-  
-  //calc crc
-
   return txstring;
-  
 }
 
 void rtty_txstring (char * string)
@@ -235,20 +230,22 @@ void setup(void){
       safeSerialPrintLn("1. Failed to load SD card.");
       return;
     }
-    safeSerialPrintLn("2. Loading last sentence_id...");
 }
 
 void loop(void){
    File hadfieldDataLog = SD.open(logFileName, FILE_WRITE); 
    char * message;
    message = getSensorMessage();
-   if(hadfieldDataLog){
-     safeSerialPrintLn("4. Opened data log.");
-     hadfieldDataLog.println(message);
-     hadfieldDataLog.close();
-   }
+   safeSerialPrintLn(message);
    rtty_txstring (message);
    safeSerialPrintLn(message);
+   if(hadfieldDataLog){
+     safeSerialPrintLn("2. Opened data log.");
+     hadfieldDataLog.println(String(message));
+     hadfieldDataLog.close();
+   }
+   
+
   // Dispatch incoming characters
   
   smartDelay(1000);
