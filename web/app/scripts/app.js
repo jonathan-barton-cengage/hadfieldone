@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('jonathan-barton-cengage.Hadfieldone', ['ngAnimate', 'ngResource', 'ngRoute'])
+angular.module('project.hadfield', ['ngAnimate', 'ngResource', 'ngRoute'])
 
   .constant('version', 'v0.1.0')
 
@@ -12,8 +12,8 @@ angular.module('jonathan-barton-cengage.Hadfieldone', ['ngAnimate', 'ngResource'
       .when('/', {
         templateUrl: 'views/home.html'
       })
-      .when('/features', {
-        templateUrl: 'views/features.html'
+      .when('/map', {
+        templateUrl: 'views/map.html'
       })
       .when('/contact', {
         templateUrl: 'views/contact.html'

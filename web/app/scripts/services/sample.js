@@ -1,3 +1,3 @@
 'use strict';
 
-angular.module('jonathan-barton-cengage.Hadfieldone')
+angular.module('project.hadfield')
